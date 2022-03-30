@@ -14,6 +14,9 @@ public class UserDAO implements IUserDAO{
     public static final String CreatNewUsers = "INSERT INTO users(name ,email,country)values (?,?,?)";
     public static final String displayListUser = "SELECT *FROM users ";
     public static final String DELETE_FROM_USERS_WHERE_ID = "delete from users where id = ?;";
+    public static final String OrderByName = "SELECT * FROM users ORDER BY name";
+    public static final String findByCountry = "select id,name,email,country from users where country =? ";
+    public static final String UpdateUsers = "UPDATE user set name =? , email=? , country=? where id=?;";
 
     protected Connection getConnection (){
         Connection connection = null;
@@ -46,7 +49,23 @@ public class UserDAO implements IUserDAO{
 
     @Override
     public User selectUser(int id) {
-        return null;
+        User user = null;
+        try (
+                Connection connection = getConnection();
+                PreparedStatement statement = connection.prepareStatement("select id,name,email,country from users where id =?");
+                ){
+            statement.setInt(1,id);
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()){
+                String name = resultSet.getString("name");
+                String email = resultSet.getString("email");
+                String country = resultSet.getString("country");
+                user =new User(id,name,email,country);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return user;
     }
 
     @Override
@@ -89,7 +108,7 @@ public class UserDAO implements IUserDAO{
         boolean rowUpdated;
         try(
                 Connection connection=getConnection();
-                PreparedStatement statement = connection.prepareStatement("UPDATE user set name =? , email=? , country=? where id=?;")
+                PreparedStatement statement = connection.prepareStatement(UpdateUsers)
         ){
             statement.setString(1,user.getName());
             statement.setString(2,user.getEmail());
@@ -99,5 +118,48 @@ public class UserDAO implements IUserDAO{
         }
 
         return rowUpdated;
+    }
+
+    @Override
+    public List<User> findByCountry(String country) {
+        List<User>newList =new ArrayList<>();
+        try(
+                Connection connection =getConnection();
+                PreparedStatement statement = connection.prepareStatement(findByCountry)
+                ) {
+            statement.setString(1,country);
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()){
+                int id = resultSet.getInt("ID");
+                String name =resultSet.getString("name");
+                String email = resultSet.getString("email");
+                newList.add(new User(id,name,email,country));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return newList;
+    }
+
+    @Override
+    public List<User> sortByName() {
+        List<User>newList = new ArrayList<>();
+        try (
+                Connection connection = getConnection();
+                PreparedStatement statement = connection.prepareStatement(OrderByName );
+        ) {
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()){
+                int id = resultSet.getInt("id");
+                String name = resultSet.getString("name");
+                String email = resultSet.getString("email");
+                String country = resultSet.getString("country");
+                newList.add(new User(id,name,email,country));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return newList;
+
     }
 }
